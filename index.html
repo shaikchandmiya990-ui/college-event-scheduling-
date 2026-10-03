@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI & DAA powered College Event and Resource Timetable Scheduler using Constraint Satisfaction (CSP), Graph Coloring, and Greedy Interval Algorithms.">
+  <title>CHRONOS // Smart Campus Event & Resource Scheduler (DAA)</title>
+  
+  <!-- Modern Typography from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation & Branding -->
+  <header class="navbar" id="mainHeader">
+    <div class="nav-brand">
+      <div class="brand-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+          <path d="M8 14h.01"></path>
+          <path d="M12 14h.01"></path>
+          <path d="M16 14h.01"></path>
+          <path d="M8 18h.01"></path>
+          <path d="M12 18h.01"></path>
+          <path d="M16 18h.01"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">CHRONOS <span class="brand-badge">DAA CSP ENGINE</span></div>
+        <div class="brand-subtitle">Smart Campus Multi-Resource & Event Timetable Scheduler</div>
+      </div>
+    </div>
+
+    <!-- Quick Control Bar -->
+    <div class="nav-controls">
+      <div class="control-group">
+        <label for="datasetSelect" class="control-label">Problem Scenario</label>
+        <select id="datasetSelect" class="styled-select">
+          <option value="hackathonPrompt" selected>Hackathon Prompt Example (4 Events)</option>
+          <option value="techFest">College Tech Fest 2026 (10 Events, Bottlenecks)</option>
+          <option value="stressConflict">High Contention Stress Test</option>
+          <option value="custom">Custom Dataset (Interactive Editor)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="algorithmSelect" class="control-label">Algorithm Paradigm</label>
+        <select id="algorithmSelect" class="styled-select">
+          <option value="csp-mrv" selected>CSP Backtracking (MRV + Forward Checking)</option>
+          <option value="graph-dsatur">Graph Coloring (DSATUR Algorithm)</option>
+          <option value="graph-welsh">Graph Coloring (Welsh-Powell)</option>
+          <option value="greedy">Greedy Multi-Resource Scheduler</option>
+        </select>
+      </div>
+
+      <div class="nav-actions">
+        <button id="btnRunSchedule" class="btn btn-primary" title="Execute algorithm immediately">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          Run Scheduler
+        </button>
+        <button id="btnStepDebugger" class="btn btn-outline" title="Launch step-by-step visual execution">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          Step Trace
+        </button>
+        <div class="dropdown">
+          <button id="btnExportMenu" class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export
+          </button>
+          <div class="dropdown-content" id="exportDropdown">
+            <a href="#" id="exportCSV">Download CSV Timetable</a>
+            <a href="#" id="exportJSON">Export JSON Config</a>
+            <a href="#" id="exportPrint">Print / PDF Timetable</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-layout">
+    <!-- Top KPI Metrics Ribbon -->
+    <section class="kpi-ribbon" aria-label="Scheduling Summary Metrics">
+      <div class="kpi-card" id="kpiStatus">
+        <div class="kpi-header">
+          <span class="kpi-title">SCHEDULING STATUS</span>
+          <span class="status-indicator status-ready" id="statusBadge">Optimal</span>
+        </div>
+        <div class="kpi-value" id="kpiScheduledRatio">4 / 4</div>
+        <div class="kpi-subtext" id="kpiSuccessPercent">100% Conflict-Free Placed</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">ALGORITHM RUNTIME</span>
+          <span class="kpi-tag" id="kpiComplexityTag">O(n d) pruned</span>
+        </div>
+        <div class="kpi-value highlight-cyan" id="kpiExecutionTime">1.12 ms</div>
+        <div class="kpi-subtext" id="kpiNodesBacktracks">5 nodes explored • 0 backtracks</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">VENUE UTILIZATION</span>
+          <span class="kpi-tag">Active Rooms</span>
+        </div>
+        <div class="kpi-value highlight-purple" id="kpiVenueUtilization">4 / 4</div>
+        <div class="kpi-subtext" id="kpiCapacitySummary">Avg Capacity Fit: 82%</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">RESOURCE INTEGRITY</span>
+          <span class="kpi-tag">Constraints</span>
+        </div>
+        <div class="kpi-value highlight-emerald" id="kpiConflictStatus">0 Violations</div>
+        <div class="kpi-subtext">Faculty, Room, Equipment & Capacity OK</div>
+      </div>
+    </section>
+
+    <!-- Constraint Satisfaction Status Bar -->
+    <section class="constraint-bar" id="constraintChecksBar">
+      <div class="constraint-item valid">
+        <span class="icon">✓</span> <strong>Time Non-Overlap:</strong> No room double-booked
+      </div>
+      <div class="constraint-item valid">
+        <span class="icon">✓</span> <strong>Faculty Exclusivity:</strong> 0 overlapping faculty lectures
+      </div>
+      <div class="constraint-item valid">
+        <span class="icon">✓</span> <strong>Room Suitability:</strong> Lab/Hall types 100% satisfied
+      </div>
+      <div class="constraint-item valid">
+        <span class="icon">✓</span> <strong>Equipment Inventory:</strong> Projectors & Workstations within limits
+      </div>
+      <div class="constraint-item valid">
+        <span class="icon">✓</span> <strong>Capacity Constraint:</strong> Room capacity ≥ event size
+      </div>
+    </section>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="view-tabs" role="tablist">
+      <button class="tab-btn active" id="tabTimetable" data-target="viewTimetable">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+        Timetable Matrix View
+      </button>
+      <button class="tab-btn" id="tabConflictGraph" data-target="viewConflictGraph">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="12" cy="18" r="3"></circle><line x1="8.5" y1="7.5" x2="15.5" y2="7.5"></line><line x1="7.5" y1="8.5" x2="10.5" y2="15.5"></line><line x1="16.5" y1="8.5" x2="13.5" y2="15.5"></line></svg>
+        Conflict Graph & Coloring
+      </button>
+      <button class="tab-btn" id="tabDebugger" data-target="viewDebugger">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+        Step-by-Step CSP Visualizer
+      </button>
+      <button class="tab-btn" id="tabFaculty" data-target="viewFaculty">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Faculty & Equipment Schedules
+      </button>
+      <button class="tab-btn" id="tabBenchmark" data-target="viewBenchmark">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        DAA Algorithm Benchmark
+      </button>
+      <button class="tab-btn" id="tabManage" data-target="viewManage">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Manage Events & Resources
+      </button>
+    </nav>
+
+    <!-- TAB 1: TIMETABLE MATRIX VIEW -->
+    <section class="tab-panel active" id="viewTimetable">
+      <div class="panel-header">
+        <div>
+          <h2>Master Campus Schedule Matrix</h2>
+          <p class="panel-description">Grid mapping of venues vs time slots (09:00 - 17:00). Events dynamically stretch across occupied durations.</p>
+        </div>
+        <div class="timetable-legend">
+          <span class="legend-item"><span class="legend-color-box lab-color"></span> Computer Lab</span>
+          <span class="legend-item"><span class="legend-color-box hall-color"></span> Seminar Hall</span>
+          <span class="legend-item"><span class="legend-color-box class-color"></span> Classroom</span>
+          <span class="legend-item"><span class="legend-color-box robot-color"></span> Robotics Lab</span>
+        </div>
+      </div>
+
+      <!-- Timetable Container -->
+      <div class="timetable-wrapper">
+        <div class="timetable-grid" id="timetableGrid">
+          <!-- Dynamically populated via app.js -->
+        </div>
+      </div>
+
+      <!-- Unscheduled Events Notice (if any) -->
+      <div class="unscheduled-banner hidden" id="unscheduledBanner">
+        <div class="unscheduled-header">
+          <span class="warning-icon">⚠</span>
+          <strong>Unassigned Events Due to Severe Resource Contention:</strong>
+        </div>
+        <ul id="unscheduledList" class="unscheduled-list"></ul>
+      </div>
+    </section>
+
+    <!-- TAB 2: CONFLICT GRAPH & GRAPH COLORING -->
+    <section class="tab-panel" id="viewConflictGraph">
+      <div class="panel-header">
+        <div>
+          <h2>Constraint Conflict Graph (Welsh-Powell & DSATUR)</h2>
+          <p class="panel-description">Vertices = Events. Edges = Mutually exclusive resource constraints (Same Faculty, Contested Room Type, or Equipment Shortage). Node colors represent assigned chromatic time slots.</p>
+        </div>
+        <div class="graph-stats-pills" id="graphPills">
+          <span class="pill">Vertices |V|: <strong id="graphVerticesCount">4</strong></span>
+          <span class="pill">Edges |E|: <strong id="graphEdgesCount">0</strong></span>
+          <span class="pill highlight">Chromatic Number &chi;(G): <strong id="graphChromaticNumber">1</strong></span>
+        </div>
+      </div>
+
+      <div class="graph-canvas-container">
+        <canvas id="conflictGraphCanvas" width="1000" height="520"></canvas>
+        <div class="graph-overlay-legend" id="graphOverlayLegend">
+          <div class="legend-title">Time Slot Color Map</div>
+          <div id="slotColorsList"></div>
+        </div>
+      </div>
+
+      <div class="card graph-explanation">
+        <h3>Graph Coloring Theory & Heuristics in Scheduling:</h3>
+        <p>
+          In DAA, Timetable Scheduling maps to the <strong>Vertex Coloring Problem</strong>:
+          Vertices are events $E_i$. An edge $(E_i, E_j) \in E$ is added whenever two events share a non-sharable faculty, compete for the same limited room, or exceed equipment capacity.
+          The <strong>Chromatic Number $\chi(G)$</strong> represents the minimum number of independent time slots required to conduct all events without conflict.
+          <strong>Welsh-Powell</strong> sorts by degree $\deg(v)$, achieving $O(V \log V + E)$, while <strong>DSATUR</strong> dynamically maximizes the saturation degree $sat(v)$ with $O(V^2)$ bound.
+        </p>
+      </div>
+    </section>
+
+    <!-- TAB 3: STEP-BY-STEP CSP VISUAL DEBUGGER -->
+    <section class="tab-panel" id="viewDebugger">
+      <div class="panel-header">
+        <div>
+          <h2>CSP Backtracking & Forward Checking Step Trace</h2>
+          <p class="panel-description">Inspect how the Constraint Satisfaction Engine picks variables with MRV (Minimum Remaining Values), tests room-slot pairs, executes forward pruning, and handles backtracks.</p>
+        </div>
+        <div class="debugger-controls">
+          <button id="btnPrevStep" class="btn btn-sm btn-secondary" title="Previous step">◀ Prev</button>
+          <button id="btnPlayPause" class="btn btn-sm btn-primary">▶ Auto Play</button>
+          <button id="btnNextStep" class="btn btn-sm btn-secondary" title="Next step">Next ▶</button>
+          <button id="btnResetTrace" class="btn btn-sm btn-outline">↺ Reset</button>
+          <div class="speed-slider-wrap">
+            <label for="stepSpeed">Speed: <span id="speedDisplay">1.0x</span></label>
+            <input type="range" id="stepSpeed" min="0.2" max="3" step="0.2" value="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="debugger-layout">
+        <!-- Trace Log Feed -->
+        <div class="debugger-log-container card">
+          <div class="card-header">
+            <h3>Execution Step Log</h3>
+            <span class="step-counter" id="stepCounterDisplay">Step 0 / 0</span>
+          </div>
+          <div class="step-log-feed" id="stepLogFeed">
+            <!-- Dynamic step cards -->
+          </div>
+        </div>
+
+        <!-- Live State Snapshot -->
+        <div class="debugger-state-container card">
+          <div class="card-header">
+            <h3>Current State & Search Tree</h3>
+            <span class="badge" id="stepStateBadge">Ready</span>
+          </div>
+          <div class="current-step-detail" id="currentStepDetail">
+            <p class="placeholder-text">Click "Auto Play" or "Next ▶" to start stepping through the algorithm execution.</p>
+          </div>
+
+          <div class="domain-prune-monitor">
+            <h4>Live Variable Domains (MRV Status)</h4>
+            <div id="variableDomainsList" class="variable-domains-list">
+              <!-- Live domain values -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: FACULTY & EQUIPMENT SCHEDULES -->
+    <section class="tab-panel" id="viewFaculty">
+      <div class="panel-header">
+        <div>
+          <h2>Faculty & Shared Equipment Resource Matrix</h2>
+          <p class="panel-description">Dedicated timeline tracking individual faculty professors and shared hardware equipment (4K Projectors, Workstations, Audio Sets, Robotics Kits).</p>
+        </div>
+      </div>
+
+      <div class="faculty-equipment-grid">
+        <!-- Faculty Calendars -->
+        <div class="card faculty-card">
+          <div class="card-header">
+            <h3>Faculty Individual Timetables</h3>
+            <span class="badge-accent">Zero Double-Booking Guarantee</span>
+          </div>
+          <div class="faculty-list" id="facultyTimetableList">
+            <!-- Populated via app.js -->
+          </div>
+        </div>
+
+        <!-- Equipment Inventory Pool & Load -->
+        <div class="card equipment-card">
+          <div class="card-header">
+            <h3>Hardware Equipment Pool Load</h3>
+            <span class="badge-accent">Inventory Bound Check</span>
+          </div>
+          <div class="equipment-inventory-list" id="equipmentInventoryList">
+            <!-- Populated via app.js -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: ALGORITHM COMPARISON BENCHMARK (DAA) -->
+    <section class="tab-panel" id="viewBenchmark">
+      <div class="panel-header">
+        <div>
+          <h2>Design & Analysis of Algorithms: Paradigm Benchmark</h2>
+          <p class="panel-description">Asymptotic time/space complexity analysis and empirical benchmark metrics comparing CSP Backtracking, Graph Coloring (DSATUR & Welsh-Powell), and Greedy Interval Scheduling.</p>
+        </div>
+        <button id="btnRebenchmark" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          Re-run Benchmark
+        </button>
+      </div>
+
+      <!-- Comparative Benchmark Table -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="benchmark-table" id="benchmarkTable">
+            <thead>
+              <tr>
+                <th>Algorithm Paradigm</th>
+                <th>Approach</th>
+                <th>Time Complexity</th>
+                <th>Space Complexity</th>
+                <th>Runtime (ms)</th>
+                <th>Scheduled Ratio</th>
+                <th>Key Mechanism / Heuristic</th>
+              </tr>
+            </thead>
+            <tbody id="benchmarkTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Deep Theoretical Insights Cards -->
+      <div class="theory-grid">
+        <div class="card theory-card">
+          <div class="theory-badge csp-badge">Constraint Satisfaction Problem (CSP)</div>
+          <h3>CSP Backtracking with MRV & Forward Checking</h3>
+          <p>
+            Models scheduling as a 3-tuple $(X, D, C)$, where variables $X = \{E_1, \dots, E_n\}$ are events, domains $D_i$ are valid tuples of $(\text{Slot}, \text{Room}, \text{Equipment}, \text{Faculty})$, and constraints $C$ enforce temporal, room, capacity, and faculty non-overlap.
+          </p>
+          <ul class="theory-bullets">
+            <li><strong>MRV (Minimum Remaining Values):</strong> Selects the variable with the fewest legal values remaining, failing early if an unassigned variable becomes constrained.</li>
+            <li><strong>Degree Heuristic:</strong> Breaks MRV ties by picking the variable involved in the most constraints with other unassigned variables.</li>
+            <li><strong>Forward Checking:</strong> Prunes incompatible domain options from neighboring variables immediately upon an assignment, cutting dead search branches early.</li>
+          </ul>
+        </div>
+
+        <div class="card theory-card">
+          <div class="theory-badge graph-badge">Graph Theory & Chromatic Coloring</div>
+          <h3>Welsh-Powell & DSATUR Graph Coloring</h3>
+          <p>
+            Constructs an undirected conflict graph $G = (V, E)$ where vertices represent events. An edge $(u, v)$ indicates that events $u$ and $v$ cannot share the same time slot color.
+          </p>
+          <ul class="theory-bullets">
+            <li><strong>Welsh-Powell:</strong> Sorts vertices in non-increasing order of degrees $\deg(v)$, greedily assigns color 1, then iterates for subsequent colors. Time complexity $O(V \log V + E)$.</li>
+            <li><strong>DSATUR (Degree of Saturation):</strong> Dynamically chooses the vertex with the maximum number of distinct colors assigned to its neighbors. Significantly closer to the true chromatic number $\chi(G)$ with $O(V^2)$.</li>
+          </ul>
+        </div>
+
+        <div class="card theory-card">
+          <div class="theory-badge greedy-badge">Greedy Interval Scheduling</div>
+          <h3>Multi-Resource Interval Scheduling</h3>
+          <p>
+            Greedily sorts events by constraint density (duration, equipment scarcity, attendees) and performs a single-pass scan to find the earliest conflict-free slot and best-fit venue.
+          </p>
+          <ul class="theory-bullets">
+            <li><strong>Pros:</strong> Extremely fast $O(n \log n + n \cdot S \cdot R)$ execution.</li>
+            <li><strong>Cons:</strong> Lacks backtracking; can get stuck in local optima if early greedy choices monopolize a bottleneck room needed by subsequent long events.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: EVENT & RESOURCE MANAGER (CUSTOM INPUT) -->
+    <section class="tab-panel" id="viewManage">
+      <div class="panel-header">
+        <div>
+          <h2>Resource Pool & Custom Event Configuration</h2>
+          <p class="panel-description">Add, edit, or customize events, classrooms, labs, equipment inventory, and faculty members to test any custom scheduling scenario.</p>
+        </div>
+        <div class="manage-actions">
+          <button id="btnResetToDefaults" class="btn btn-outline">Reset to Hackathon Sample</button>
+          <button id="btnApplyCustomSchedule" class="btn btn-primary">Schedule Custom Dataset</button>
+        </div>
+      </div>
+
+      <div class="manage-grid">
+        <!-- Add Event Form -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Add New Event</h3>
+            <span class="badge">Input Form</span>
+          </div>
+          <form id="formAddEvent" class="custom-form">
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <label for="inputEventName">Event Name</label>
+                <input type="text" id="inputEventName" placeholder="e.g. AI Hackathon Finals" required>
+              </div>
+              <div class="form-group flex-1">
+                <label for="inputEventDuration">Duration (Hours)</label>
+                <select id="inputEventDuration">
+                  <option value="1">1 Hour</option>
+                  <option value="2" selected>2 Hours</option>
+                  <option value="3">3 Hours</option>
+                  <option value="4">4 Hours</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="inputEventRoomType">Required Room Type</label>
+                <select id="inputEventRoomType">
+                  <option value="Computer Lab">Computer Lab</option>
+                  <option value="Seminar Hall">Seminar Hall</option>
+                  <option value="Classroom">Classroom</option>
+                  <option value="Robotics Lab">Robotics Lab</option>
+                </select>
+              </div>
+              <div class="form-group flex-1">
+                <label for="inputEventAttendees">Expected Attendees</label>
+                <input type="number" id="inputEventAttendees" value="30" min="5" max="300" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="inputEventFaculty">Faculty Coordinator</label>
+                <select id="inputEventFaculty">
+                  <option value="f1">Dr. Sarah (CS Dept)</option>
+                  <option value="f2">Prof. Alan (Keynote)</option>
+                  <option value="f3">Dr. Elena (Math/Data)</option>
+                  <option value="f4">Dr. Vikram (Robotics)</option>
+                  <option value="f5">Prof. Chen (Systems)</option>
+                </select>
+              </div>
+              <div class="form-group flex-1">
+                <label for="inputEventFixedTime">Fixed Time Window (Optional)</label>
+                <select id="inputEventFixedTime">
+                  <option value="flexible">Flexible (Algorithm assigns optimal slot)</option>
+                  <option value="9">09:00 AM</option>
+                  <option value="10">10:00 AM</option>
+                  <option value="11">11:00 AM</option>
+                  <option value="12">12:00 PM</option>
+                  <option value="13">01:00 PM</option>
+                  <option value="14">02:00 PM</option>
+                  <option value="15">03:00 PM</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Required Equipment</label>
+              <div class="checkbox-group">
+                <label><input type="checkbox" name="customEquipment" value="projector_hd"> 4K HD Projector</label>
+                <label><input type="checkbox" name="customEquipment" value="mic_sound"> Mic & Audio System</label>
+                <label><input type="checkbox" name="customEquipment" value="comp_cluster"> Computer Cluster</label>
+                <label><input type="checkbox" name="customEquipment" value="robotics_kits"> Robotics Kits</label>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btnSubmitAddEvent">Add Event to Pool</button>
+          </form>
+        </div>
+
+        <!-- Current Events in Dataset -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Events in Dataset (<span id="eventCountBadge">4</span>)</h3>
+            <span class="badge" id="datasetNameBadge">Hackathon Sample</span>
+          </div>
+          <div class="events-scroll-list" id="eventsTableList">
+            <!-- Dynamic events rows -->
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Event Detail Modal (for clicking cards) -->
+  <div class="modal-backdrop hidden" id="eventModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modalEventName">Event Details</h3>
+        <button class="modal-close" id="btnModalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="modalEventBody">
+        <!-- Populated via app.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="algorithms.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
